@@ -4,3 +4,5 @@ log/
 .venv/
 .vscode/
 src/build/
+src/agv-bot-project/
+src/YDLidar-SDK/build/
