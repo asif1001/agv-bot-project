@@ -29,6 +29,7 @@ def generate_launch_description():
     share_dir = get_package_share_directory('ydlidar_ros2_driver')
     rviz_config_file = os.path.join(share_dir, 'config','ydlidar.rviz')
     parameter_file = LaunchConfiguration('params_file')
+
     node_name = 'ydlidar_ros2_driver_node'
 
     params_declare = DeclareLaunchArgument('params_file',
