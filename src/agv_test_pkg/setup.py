@@ -9,6 +9,9 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/templates', ['templates/web_sensor_dashboard.html']),
+        ('share/' + package_name + '/scripts', ['scripts/start_web_dashboard.sh']),
+        ('share/' + package_name + '/systemd', ['systemd/pi-sensor-dashboard.service']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

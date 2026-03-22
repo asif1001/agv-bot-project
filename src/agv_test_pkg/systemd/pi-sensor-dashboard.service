@@ -1,0 +1,15 @@
+[Unit]
+Description=Pi Sensor Dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rpi4
+WorkingDirectory=/home/rpi4/ros2_ws
+ExecStart=/home/rpi4/ros2_ws/src/agv-bot-project/src/agv_test_pkg/scripts/start_web_dashboard.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

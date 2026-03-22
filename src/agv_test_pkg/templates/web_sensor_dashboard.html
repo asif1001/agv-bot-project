@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pi Sensor Dashboard</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, Arial, sans-serif;
+      background: #020617;
+      color: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 16px;
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 30%),
+        radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 28%),
+        linear-gradient(180deg, #020617 0%, #0f172a 48%, #111827 100%);
+    }
+    .page-shell { max-width: 1480px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    .hero, .panel {
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+    }
+    .hero { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; padding: 16px 18px; border-radius: 20px; }
+    .hero-copy { max-width: 760px; }
+    .eyebrow { margin: 0 0 6px; color: #38bdf8; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; }
+    h1 { margin: 0; font-size: clamp(24px, 2.8vw, 38px); line-height: 1.04; }
+    .hero-subtitle { margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: #94a3b8; max-width: 64ch; }
+    .nav-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+    .nav-tab, button {
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: rgba(2, 6, 23, 0.65);
+      color: #cbd5e1;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .nav-tab.active, button.primary {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #eff6ff;
+      border-color: rgba(96, 165, 250, 0.45);
+    }
+    button.secondary { background: linear-gradient(135deg, #334155 0%, #1e293b 100%); color: #eff6ff; }
+    .hero-status, .overview-grid, .dashboard-grid, .serial-meta, .stats {
+      display: grid;
+      gap: 12px;
+    }
+    .hero-status { width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .overview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .serial-meta, .stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    .hero-pill, .stat {
+      background: rgba(2, 6, 23, 0.68);
+      border: 1px solid rgba(148, 163, 184, 0.10);
+      border-radius: 16px;
+      padding: 10px 12px;
+    }
+    .hero-pill strong, .stat strong, .panel-kicker {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .panel { padding: 16px; border-radius: 20px; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+    .panel.tall { min-height: 0; }
+    .panel-header { display: flex; justify-content: space-between; gap: 10px; }
+    .panel-title-group { display: flex; flex-direction: column; gap: 6px; }
+    .panel h2 { margin: 0; font-size: 20px; }
+    .panel-description { margin: 0; color: #94a3b8; font-size: 12px; line-height: 1.45; }
+    .status-badge { display: inline-flex; align-items: center; width: fit-content; padding: 7px 10px; border-radius: 999px; background: rgba(2, 6, 23, 0.75); border: 1px solid rgba(148, 163, 184, 0.12); color: #cbd5e1; font-size: 12px; }
+    .media-frame {
+      position: relative; flex: 1 1 auto; min-height: 320px; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.30), rgba(15, 23, 42, 0.55)), #020617;
+      border: 1px solid rgba(148, 163, 184, 0.12); display: flex; align-items: center; justify-content: center;
+    }
+    #camera { width: 100%; height: 100%; object-fit: cover; display: block; background: #020617; }
+    #lidarCanvas { display: block; max-width: 100%; max-height: 100%; }
+    .controls { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .camera-config {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .field-label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    select {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(2, 6, 23, 0.82);
+      color: #e2e8f0;
+      padding: 11px 12px;
+      font-size: 14px;
+    }
+    .serial-monitor {
+      flex: 1 1 auto; min-height: 360px; margin: 0; padding: 14px; border-radius: 16px; overflow: auto;
+      background: #020617; border: 1px solid rgba(148, 163, 184, 0.12); color: #93c5fd;
+      font: 13px/1.55 "SFMono-Regular", Consolas, monospace; white-space: pre-wrap;
+    }
+    .tab-view { display: none; }
+    .tab-view.active { display: block; }
+    .esp32-link { color: #7dd3fc; text-decoration: none; }
+    .esp32-link:hover { text-decoration: underline; }
+    @media (max-width: 1120px) {
+      .overview-grid, .dashboard-grid, .hero-status { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      body { padding: 12px; }
+      .nav-tabs, .controls { flex-direction: column; }
+      .camera-config { grid-template-columns: 1fr; }
+      .nav-tab, button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Raspberry Pi Sensor Control</p>
+        <h1>Robot Sensor + ESP32 Dashboard</h1>
+        <p class="hero-subtitle">Switch between system overview, live sensors, and the ESP32 serial monitor from one interface.</p>
+      </div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="main" type="button">Main</button>
+        <button class="nav-tab" data-tab="sensors" type="button">Sensor's</button>
+        <button class="nav-tab" data-tab="esp32" type="button">Esp32 SM</button>
+      </div>
+      <div class="hero-status">
+        <div class="hero-pill"><strong>Camera</strong><span id="cameraProcessStatus">Checking...</span></div>
+        <div class="hero-pill"><strong>LiDAR</strong><span id="lidarProcessStatus">Checking...</span></div>
+        <div class="hero-pill"><strong>ESP32</strong><span id="esp32ProcessStatus">Checking...</span></div>
+      </div>
+    </header>
+
+    <section class="tab-view active" id="tab-main">
+      <div class="overview-grid">
+        <section class="panel">
+          <div class="panel-header"><div class="panel-title-group"><div class="panel-kicker">System Overview</div><h2>Main Status</h2><p class="panel-description">Quick health status for all active connections.</p></div></div>
+          <div class="stats">
+            <div class="stat"><strong>LiDAR</strong><span id="mainLidarStatus">Waiting</span></div>
+            <div class="stat"><strong>Camera</strong><span id="mainCameraStatus">Waiting</span></div>
+            <div class="stat"><strong>ESP32</strong><span id="mainEsp32Status">Waiting</span></div>
+            <div class="stat"><strong>ESP32 Port</strong><span id="mainEsp32Port">-</span></div>
+            <div class="stat"><strong>ESP32 IP</strong><span id="mainEsp32Ip">-</span></div>
+            <div class="stat"><strong>Last Serial</strong><span id="mainEsp32LastSeen">-</span></div>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-header"><div class="panel-title-group"><div class="panel-kicker">Processes</div><h2>Managed Services</h2><p class="panel-description">Current dashboard-managed sensor processes.</p></div></div>
+          <div class="stats">
+            <div class="stat"><strong>Camera Process</strong><span id="mainCameraProcess">-</span></div>
+            <div class="stat"><strong>LiDAR Process</strong><span id="mainLidarProcess">-</span></div>
+            <div class="stat"><strong>ESP32 Web</strong><span id="mainEsp32Web">-</span></div>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-header"><div class="panel-title-group"><div class="panel-kicker">Shortcuts</div><h2>Links</h2><p class="panel-description">Direct access to live interfaces.</p></div></div>
+          <div class="stats">
+            <div class="stat"><strong>Sensor Dashboard</strong><span>Live on this page</span></div>
+            <div class="stat"><strong>ESP32 Control</strong><span><a id="esp32WebLink" class="esp32-link" href="#" target="_blank" rel="noreferrer">Unavailable</a></span></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="tab-view" id="tab-sensors">
+      <div class="dashboard-grid">
+        <section class="panel tall">
+          <div class="panel-header"><div class="panel-title-group"><div class="panel-kicker">Vision Feed</div><h2>Live Camera</h2><p class="panel-description">View the USB camera stream in real time.</p></div><div class="status-badge">MJPEG Stream</div></div>
+          <div class="media-frame"><img id="camera" src="/camera.mjpg" alt="Live camera stream" /></div>
+          <div class="camera-config">
+            <label class="field-label">Incoming Video Format
+              <select id="cameraPresetSelect"></select>
+            </label>
+            <button class="primary" id="applyCameraPresetButton" type="button">Apply Format</button>
+          </div>
+          <div class="controls"><button class="primary" onclick="controlSensor('camera','start')" type="button">Start Camera</button><button class="secondary" onclick="controlSensor('camera','stop')" type="button">Stop Camera</button></div>
+          <div class="stats">
+            <div class="stat"><strong>Camera Mode</strong><span id="cameraPresetLabel">Loading...</span></div>
+          </div>
+        </section>
+        <section class="panel tall">
+          <div class="panel-header"><div class="panel-title-group"><div class="panel-kicker">Spatial Awareness</div><h2>LiDAR Scan</h2><p class="panel-description">Observe the live 2D scan and control the LiDAR service.</p></div><div class="status-badge">Polar View</div></div>
+          <div class="media-frame" id="lidarFrame"><canvas id="lidarCanvas" width="700" height="700"></canvas></div>
+          <div class="controls"><button class="primary" onclick="controlSensor('lidar','start')" type="button">Start LiDAR</button><button class="secondary" onclick="controlSensor('lidar','stop')" type="button">Stop LiDAR</button></div>
+          <div class="stats">
+            <div class="stat"><strong>Status</strong><span id="lidarStatus">Waiting...</span></div>
+            <div class="stat"><strong>Points</strong><span id="lidarPoints">0</span></div>
+            <div class="stat"><strong>Range Min</strong><span id="lidarRangeMin">-</span></div>
+            <div class="stat"><strong>Range Max</strong><span id="lidarRangeMax">-</span></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="tab-view" id="tab-esp32">
+      <section class="panel serial-card">
+        <div class="panel-header"><div class="panel-title-group"><div class="panel-kicker">ESP32 Serial Monitor</div><h2>Esp32 SM</h2><p class="panel-description">Live serial output captured from the ESP32-S3 connected to the Pi over USB.</p></div><div class="status-badge" id="esp32SerialBadge">Checking serial...</div></div>
+        <div class="serial-meta">
+          <div class="stat"><strong>Port</strong><span id="esp32Port">-</span></div>
+          <div class="stat"><strong>IP Address</strong><span id="esp32Ip">-</span></div>
+          <div class="stat"><strong>Last Update</strong><span id="esp32LastSeen">-</span></div>
+        </div>
+        <pre class="serial-monitor" id="esp32SerialMonitor">Waiting for ESP32 serial data...</pre>
+      </section>
+    </section>
+  </div>
+
+  <script>
+    const lidarFrame = document.getElementById('lidarFrame');
+    const canvas = document.getElementById('lidarCanvas');
+    const ctx = canvas.getContext('2d');
+    const tabs = document.querySelectorAll('.nav-tab');
+    const tabViews = document.querySelectorAll('.tab-view');
+    const statusEl = document.getElementById('lidarStatus');
+    const pointsEl = document.getElementById('lidarPoints');
+    const rangeMinEl = document.getElementById('lidarRangeMin');
+    const rangeMaxEl = document.getElementById('lidarRangeMax');
+    const cameraProcessStatusEl = document.getElementById('cameraProcessStatus');
+    const lidarProcessStatusEl = document.getElementById('lidarProcessStatus');
+    const esp32ProcessStatusEl = document.getElementById('esp32ProcessStatus');
+    const mainCameraStatusEl = document.getElementById('mainCameraStatus');
+    const mainLidarStatusEl = document.getElementById('mainLidarStatus');
+    const mainEsp32StatusEl = document.getElementById('mainEsp32Status');
+    const mainEsp32PortEl = document.getElementById('mainEsp32Port');
+    const mainEsp32IpEl = document.getElementById('mainEsp32Ip');
+    const mainEsp32LastSeenEl = document.getElementById('mainEsp32LastSeen');
+    const mainCameraProcessEl = document.getElementById('mainCameraProcess');
+    const mainLidarProcessEl = document.getElementById('mainLidarProcess');
+    const mainEsp32WebEl = document.getElementById('mainEsp32Web');
+    const cameraPresetSelectEl = document.getElementById('cameraPresetSelect');
+    const cameraPresetLabelEl = document.getElementById('cameraPresetLabel');
+    const applyCameraPresetButtonEl = document.getElementById('applyCameraPresetButton');
+    const esp32PortEl = document.getElementById('esp32Port');
+    const esp32IpEl = document.getElementById('esp32Ip');
+    const esp32LastSeenEl = document.getElementById('esp32LastSeen');
+    const esp32SerialMonitorEl = document.getElementById('esp32SerialMonitor');
+    const esp32SerialBadgeEl = document.getElementById('esp32SerialBadge');
+    const esp32WebLinkEl = document.getElementById('esp32WebLink');
+    let activeTab = 'main';
+    let lastEsp32LineCount = 0;
+
+    function activateTab(name) {
+      activeTab = name;
+      tabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.tab === name));
+      tabViews.forEach((view) => view.classList.toggle('active', view.id === 'tab-' + name));
+      if (name === 'sensors') {
+        requestAnimationFrame(() => requestAnimationFrame(drawGrid));
+      }
+    }
+    tabs.forEach((tab) => tab.addEventListener('click', () => activateTab(tab.dataset.tab)));
+
+    function resizeLidarCanvas() {
+      const rect = lidarFrame.getBoundingClientRect();
+      if (rect.width < 40 || rect.height < 40) {
+        return;
+      }
+      const size = Math.max(120, Math.floor(Math.min(rect.width, rect.height) - 12));
+      if (canvas.width !== size || canvas.height !== size) {
+        canvas.width = size;
+        canvas.height = size;
+      }
+      canvas.style.width = size + 'px';
+      canvas.style.height = size + 'px';
+    }
+    function drawGrid() {
+      resizeLidarCanvas();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#020617';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
+      ctx.lineWidth = 1;
+      const center = canvas.width / 2;
+      for (let r = 80; r <= center; r += 80) {
+        ctx.beginPath();
+        ctx.arc(center, center, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.moveTo(center, 0);
+      ctx.lineTo(center, canvas.height);
+      ctx.moveTo(0, center);
+      ctx.lineTo(canvas.width, center);
+      ctx.stroke();
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(center, center, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    function drawScan(scan) {
+      drawGrid();
+      if (!scan || !scan.ranges || scan.ranges.length === 0) {
+        statusEl.textContent = 'No data';
+        pointsEl.textContent = '0';
+        return;
+      }
+      const center = canvas.width / 2;
+      const maxRange = Math.max(scan.range_max || 1.0, 0.1);
+      ctx.fillStyle = '#22c55e';
+      let validPoints = 0;
+      for (let i = 0; i < scan.ranges.length; i++) {
+        const range = scan.ranges[i];
+        if (!(range > 0.0) || range < scan.range_min || range > scan.range_max) {
+          continue;
+        }
+        const angle = scan.angle_min + i * scan.angle_increment;
+        const scale = (range / maxRange) * (center - 24);
+        const x = center + Math.cos(angle) * scale;
+        const y = center - Math.sin(angle) * scale;
+        ctx.fillRect(x, y, 3, 3);
+        validPoints += 1;
+      }
+      statusEl.textContent = 'Live';
+      pointsEl.textContent = String(validPoints);
+      rangeMinEl.textContent = scan.range_min.toFixed(2) + ' m';
+      rangeMaxEl.textContent = scan.range_max.toFixed(2) + ' m';
+    }
+    async function updateLidar() {
+      try {
+        const response = await fetch('/lidar.json', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Request failed');
+        drawScan(await response.json());
+      } catch (error) {
+        drawGrid();
+        statusEl.textContent = 'Waiting...';
+      }
+    }
+    function prettyTime(timestamp) {
+      if (!timestamp) return '-';
+      return new Date(timestamp * 1000).toLocaleTimeString();
+    }
+    async function updateCameraConfig() {
+      try {
+        const response = await fetch('/camera_config.json', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Request failed');
+        const config = await response.json();
+        const currentValue = cameraPresetSelectEl.value;
+        cameraPresetSelectEl.innerHTML = '';
+        config.presets.forEach((preset) => {
+          const option = document.createElement('option');
+          option.value = preset.id;
+          option.textContent = preset.label;
+          option.selected = preset.id === config.selected_preset;
+          cameraPresetSelectEl.appendChild(option);
+        });
+        if (currentValue && [...cameraPresetSelectEl.options].some((option) => option.value === currentValue)) {
+          cameraPresetSelectEl.value = currentValue;
+        }
+        cameraPresetLabelEl.textContent = config.selected_label;
+      } catch (error) {
+        cameraPresetLabelEl.textContent = 'Unavailable';
+      }
+    }
+    async function updateStatus() {
+      try {
+        const response = await fetch('/status.json', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Request failed');
+        const status = await response.json();
+        cameraProcessStatusEl.textContent = status.camera_process;
+        lidarProcessStatusEl.textContent = status.lidar_process;
+        esp32ProcessStatusEl.textContent = status.esp32_stream;
+        mainCameraStatusEl.textContent = status.camera_stream;
+        mainLidarStatusEl.textContent = status.lidar_stream;
+        mainEsp32StatusEl.textContent = status.esp32_stream;
+        mainEsp32PortEl.textContent = status.esp32_port || '-';
+        mainEsp32IpEl.textContent = status.esp32_ip || '-';
+        mainEsp32LastSeenEl.textContent = prettyTime(status.esp32_last_message_time);
+        mainCameraProcessEl.textContent = status.camera_process;
+        mainLidarProcessEl.textContent = status.lidar_process;
+        mainEsp32WebEl.textContent = status.esp32_ip ? 'http://' + status.esp32_ip : 'Unavailable';
+        cameraPresetLabelEl.textContent = status.camera_preset_label || 'Unknown';
+        esp32PortEl.textContent = status.esp32_port || '-';
+        esp32IpEl.textContent = status.esp32_ip || '-';
+        esp32LastSeenEl.textContent = prettyTime(status.esp32_last_message_time);
+        esp32SerialBadgeEl.textContent = status.esp32_stream;
+        if (status.esp32_ip) {
+          esp32WebLinkEl.href = 'http://' + status.esp32_ip;
+          esp32WebLinkEl.textContent = 'http://' + status.esp32_ip;
+        } else {
+          esp32WebLinkEl.href = '#';
+          esp32WebLinkEl.textContent = 'Unavailable';
+        }
+      } catch (error) {
+        cameraProcessStatusEl.textContent = 'Camera unavailable';
+        lidarProcessStatusEl.textContent = 'LiDAR unavailable';
+        esp32ProcessStatusEl.textContent = 'ESP32 unavailable';
+      }
+    }
+    async function applyCameraPreset() {
+      const preset = cameraPresetSelectEl.value;
+      if (!preset) {
+        return;
+      }
+      applyCameraPresetButtonEl.disabled = true;
+      try {
+        const response = await fetch('/camera_config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: new URLSearchParams({ preset }).toString(),
+        });
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || 'Camera format update failed');
+        }
+        await updateCameraConfig();
+        await updateStatus();
+      } catch (error) {
+        alert(error.message || 'Camera format update failed');
+      } finally {
+        applyCameraPresetButtonEl.disabled = false;
+      }
+    }
+    async function updateEsp32Serial() {
+      try {
+        const response = await fetch('/esp32.json', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Request failed');
+        const payload = await response.json();
+        esp32SerialMonitorEl.textContent = payload.lines.length ? payload.lines.join('\n') : 'Waiting for ESP32 serial data...';
+        if (payload.lines.length > lastEsp32LineCount) {
+          esp32SerialMonitorEl.scrollTop = esp32SerialMonitorEl.scrollHeight;
+        }
+        lastEsp32LineCount = payload.lines.length;
+        esp32SerialBadgeEl.textContent = payload.stream === 'live' ? 'Live serial' : (payload.lines.length ? 'History available' : 'Waiting serial');
+      } catch (error) {
+        esp32SerialMonitorEl.textContent = 'ESP32 serial monitor unavailable';
+      }
+    }
+    async function controlSensor(sensor, action) {
+      const response = await fetch('/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: new URLSearchParams({ sensor, action }).toString(),
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        alert(text || 'Control request failed');
+        return;
+      }
+      updateStatus();
+    }
+    window.addEventListener('resize', drawGrid);
+    applyCameraPresetButtonEl.addEventListener('click', applyCameraPreset);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && activeTab === 'sensors') {
+        requestAnimationFrame(() => requestAnimationFrame(drawGrid));
+      }
+    });
+    drawGrid();
+    updateCameraConfig();
+    updateLidar();
+    updateStatus();
+    updateEsp32Serial();
+    setInterval(updateLidar, 150);
+    setInterval(updateStatus, 1000);
+    setInterval(updateEsp32Serial, 1000);
+    setInterval(updateCameraConfig, 3000);
+  </script>
+</body>
+</html>

@@ -17,13 +17,14 @@ from socketserver import ThreadingMixIn
 import cv2
 import numpy as np
 import rclpy
+from ament_index_python.packages import get_package_share_directory
 from cv_bridge import CvBridge
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image, LaserScan
 
 
-HTML_TEMPLATE_PATH = '/home/rpi4/ros2_ws/web_sensor_dashboard.html'
+HTML_TEMPLATE_FALLBACK_PATH = '/home/rpi4/ros2_ws/web_sensor_dashboard.html'
 
 CAMERA_PRESETS = {
     'mjpg_640x480_30': {
@@ -58,7 +59,10 @@ CAMERA_PRESETS = {
 
 
 def load_html_page() -> str:
-    with open(HTML_TEMPLATE_PATH, 'r', encoding='utf-8') as file_handle:
+    template_path = os.path.join(get_package_share_directory('agv_test_pkg'), 'templates', 'web_sensor_dashboard.html')
+    if not os.path.exists(template_path):
+        template_path = HTML_TEMPLATE_FALLBACK_PATH
+    with open(template_path, 'r', encoding='utf-8') as file_handle:
         return file_handle.read()
 
 
