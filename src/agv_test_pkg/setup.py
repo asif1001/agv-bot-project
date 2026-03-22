@@ -24,6 +24,7 @@ setup(
             'agv_keyboard_teleop = agv_test_pkg.agv_keyboard_teleop:main',
             'agv_goal_nav = agv_test_pkg.agv_goal_nav:main',
             'agv_nav_goal_bridge = agv_test_pkg.agv_nav_goal_bridge:main',
+            'web_sensor_dashboard = agv_test_pkg.web_sensor_dashboard:main',
         ],
     },
 )
