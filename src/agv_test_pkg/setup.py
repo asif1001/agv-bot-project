@@ -1,4 +1,5 @@
 from setuptools import find_packages, setup
+from glob import glob
 
 package_name = 'agv_test_pkg'
 
@@ -12,6 +13,7 @@ setup(
         ('share/' + package_name + '/templates', ['templates/web_sensor_dashboard.html']),
         ('share/' + package_name + '/scripts', ['scripts/start_web_dashboard.sh']),
         ('share/' + package_name + '/systemd', ['systemd/pi-sensor-dashboard.service']),
+        ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -24,10 +26,12 @@ setup(
         'console_scripts': [
             'hello_agv_node = agv_test_pkg.hello_agv_node:main',
             'agv_listener_node = agv_test_pkg.agv_listener_node:main',
+            'pi_message_listener = agv_test_pkg.pi_message_listener:main',
             'agv_keyboard_teleop = agv_test_pkg.agv_keyboard_teleop:main',
             'agv_goal_nav = agv_test_pkg.agv_goal_nav:main',
             'agv_nav_goal_bridge = agv_test_pkg.agv_nav_goal_bridge:main',
             'web_sensor_dashboard = agv_test_pkg.web_sensor_dashboard:main',
+            'odrive_dashboard = agv_test_pkg.odrive_dashboard:main',
         ],
     },
 )
